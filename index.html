@@ -1,1 +1,180 @@
-Hell index
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ระบบเช็คอิน GPS ฟรี</title>
+    <link rel="stylesheet" href="style/style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="panel hero-panel">
+        <p class="eyebrow">GPS Check-in ฟรี</p>
+        <h1>ระบบเช็คอินด้วยตำแหน่งที่ตั้งแบบไม่ต้องจ่ายเงิน</h1>
+        <p>
+          ใช้ GPS จากเบราว์เซอร์ของคุณเพื่อเช็คอินเข้าเขตพื้นที่ที่กำหนด
+          โดยไม่ต้องใช้ API ภายนอกหรือบริการเสียเงิน
+        </p>
+
+        <div id="status" class="status">ยังไม่ได้เช็คอิน</div>
+
+        <div class="actions">
+          <button id="useLocationBtn" class="btn btn-primary">ใช้ตำแหน่งปัจจุบัน</button>
+          <button id="checkInBtn" class="btn btn-secondary">เช็คอินตอนนี้</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>ตั้งค่าเป้าหมาย</h2>
+        <div class="grid">
+          <label>
+            ชื่อพื้นที่
+            <input id="placeName" type="text" value="พื้นที่ทำงาน" />
+          </label>
+          <label>
+            ละติจูด
+            <input id="lat" type="number" step="0.000001" value="13.7563" />
+          </label>
+          <label>
+            ลองจิจูด
+            <input id="lng" type="number" step="0.000001" value="100.5018" />
+          </label>
+          <label>
+            รัศมี (เมตร)
+            <input id="radius" type="number" min="1" value="100" />
+          </label>
+        </div>
+        <p class="hint">ระบบจะตรวจว่าอุปกรณ์ของคุณอยู่ในรัศมีที่กำหนดหรือไม่</p>
+      </section>
+
+      <section class="panel">
+        <h2>ประวัติเช็คอิน</h2>
+        <ul id="historyList" class="history-list">
+          <li>ยังไม่มีประวัติการเช็คอิน</li>
+        </ul>
+      </section>
+    </main>
+
+    <script>
+      const placeNameInput = document.getElementById('placeName');
+      const latInput = document.getElementById('lat');
+      const lngInput = document.getElementById('lng');
+      const radiusInput = document.getElementById('radius');
+      const statusEl = document.getElementById('status');
+      const historyList = document.getElementById('historyList');
+      const storageKey = 'gps-checkin-history';
+
+      function setStatus(message, type = 'info') {
+        statusEl.textContent = message;
+        statusEl.className = `status ${type}`;
+      }
+
+      function toRad(value) {
+        return (value * Math.PI) / 180;
+      }
+
+      function getDistanceMeters(lat1, lng1, lat2, lng2) {
+        const earthRadius = 6371000;
+        const dLat = toRad(lat2 - lat1);
+        const dLng = toRad(lng2 - lng1);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+          Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return earthRadius * c;
+      }
+
+      function loadHistory() {
+        const data = localStorage.getItem(storageKey);
+        return data ? JSON.parse(data) : [];
+      }
+
+      function saveHistory(entries) {
+        localStorage.setItem(storageKey, JSON.stringify(entries));
+      }
+
+      function renderHistory() {
+        const entries = loadHistory();
+        if (!entries.length) {
+          historyList.innerHTML = '<li>ยังไม่มีประวัติการเช็คอิน</li>';
+          return;
+        }
+
+        historyList.innerHTML = entries
+          .slice(0, 8)
+          .map((entry) => {
+            const distance = entry.distance.toFixed(1);
+            return `
+              <li>
+                <strong>${entry.place}</strong>
+                <span>${entry.result}</span>
+                <small>${entry.time} · ระยะห่าง ${distance} เมตร</small>
+              </li>
+            `;
+          })
+          .join('');
+      }
+
+      function requestCurrentLocation(callback) {
+        if (!navigator.geolocation) {
+          setStatus('เบราว์เซอร์ของคุณไม่รองรับ GPS', 'error');
+          return;
+        }
+
+        setStatus('กำลังขอสิทธิ์ตำแหน่งจากอุปกรณ์...', 'info');
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            latInput.value = position.coords.latitude.toFixed(6);
+            lngInput.value = position.coords.longitude.toFixed(6);
+            setStatus(`รับตำแหน่งสำเร็จแล้ว · ความแม่นยำ ±${Math.round(position.coords.accuracy)} เมตร`, 'success');
+            callback(position.coords);
+          },
+          (error) => {
+            let message = 'ไม่สามารถรับตำแหน่งได้';
+            if (error.code === 1) message = 'คุณปฏิเสธสิทธิ์การเข้าถึงตำแหน่ง';
+            if (error.code === 2) message = 'ไม่พบข้อมูลตำแหน่งในขณะนี้';
+            if (error.code === 3) message = 'หมดเวลาในการหาตำแหน่ง';
+            setStatus(message, 'error');
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      }
+
+      function checkIn() {
+        const place = placeNameInput.value.trim() || 'พื้นที่ไม่ระบุ';
+        const targetLat = Number(latInput.value);
+        const targetLng = Number(lngInput.value);
+        const radius = Number(radiusInput.value) || 100;
+
+        if (!Number.isFinite(targetLat) || !Number.isFinite(targetLng)) {
+          setStatus('กรุณากรอกละติจูดและลองจิจูดให้ถูกต้อง', 'error');
+          return;
+        }
+
+        requestCurrentLocation((coords) => {
+          const distance = getDistanceMeters(coords.latitude, coords.longitude, targetLat, targetLng);
+          const ok = distance <= radius;
+          const result = ok ? 'เช็คอินสำเร็จ' : 'อยู่นอกพื้นที่ที่กำหนด';
+          const entry = {
+            place,
+            result,
+            distance,
+            time: new Date().toLocaleString('th-TH')
+          };
+
+          const entries = loadHistory();
+          entries.unshift(entry);
+          saveHistory(entries);
+          renderHistory();
+          setStatus(`${result} · ระยะห่าง ${distance.toFixed(1)} เมตร`, ok ? 'success' : 'error');
+        });
+      }
+
+      document.getElementById('useLocationBtn').addEventListener('click', () => requestCurrentLocation(() => {}));
+      document.getElementById('checkInBtn').addEventListener('click', checkIn);
+      renderHistory();
+    </script>
+  </body>
+</html>
