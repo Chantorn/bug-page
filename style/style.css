@@ -139,6 +139,43 @@ input {
   font-size: 0.9rem;
 }
 
+.section-heading {
+  margin-bottom: 0.7rem;
+}
+
+.section-heading p {
+  margin-top: 0.2rem;
+  font-size: 0.92rem;
+}
+
+#map {
+  height: 320px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.map-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.7rem;
+}
+
+.small {
+  padding: 0.6rem 0.9rem;
+  font-size: 0.92rem;
+}
+
+.map-info {
+  margin-top: 0.7rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+#map:fullscreen {
+  height: 100vh;
+}
+
 .history-list {
   list-style: none;
   display: grid;

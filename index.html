@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ระบบเช็คอิน GPS ฟรี</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style/style.css" />
   </head>
   <body>
@@ -29,22 +30,34 @@
         <div class="grid">
           <label>
             ชื่อพื้นที่
-            <input id="placeName" type="text" value="พื้นที่ทำงาน" />
+            <input id="placeName" type="text" value="มหาวิทยาลัยราชภัฏเทพสตรี" />
           </label>
           <label>
             ละติจูด
-            <input id="lat" type="number" step="0.000001" value="13.7563" />
+            <input id="lat" type="number" step="0.000001" value="14.7995" />
           </label>
           <label>
             ลองจิจูด
-            <input id="lng" type="number" step="0.000001" value="100.5018" />
+            <input id="lng" type="number" step="0.000001" value="100.6534" />
           </label>
           <label>
-            รัศมี (เมตร)
-            <input id="radius" type="number" min="1" value="100" />
+            รัศมีที่อนุญาต
+            <input id="radius" type="number" min="1" value="1000" readonly />
           </label>
         </div>
-        <p class="hint">ระบบจะตรวจว่าอุปกรณ์ของคุณอยู่ในรัศมีที่กำหนดหรือไม่</p>
+        <p class="hint">ระบบจะอนุญาตให้เช็คอินได้เฉพาะเมื่ออยู่ไม่เกิน 1,000 เมตรจากจุดนี้</p>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <h2>แผนที่และตำแหน่ง</h2>
+          <p>จุดสีเขียวคือจุดเป้าหมาย และจุดสีน้ำเงินคือตำแหน่งของคุณ</p>
+        </div>
+        <div class="map-toolbar">
+          <button id="fullscreenMapBtn" class="btn btn-secondary small">เปิดแผนที่เต็มจอ</button>
+        </div>
+        <div id="map"></div>
+        <div id="mapInfo" class="map-info">รอรับตำแหน่ง...</div>
       </section>
 
       <section class="panel">
@@ -55,6 +68,7 @@
       </section>
     </main>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
       const placeNameInput = document.getElementById('placeName');
       const latInput = document.getElementById('lat');
@@ -62,7 +76,13 @@
       const radiusInput = document.getElementById('radius');
       const statusEl = document.getElementById('status');
       const historyList = document.getElementById('historyList');
+      const mapInfoEl = document.getElementById('mapInfo');
       const storageKey = 'gps-checkin-history';
+      let map;
+      let targetMarker;
+      let radiusCircle;
+      let userMarker;
+      let userAccuracyCircle;
 
       function setStatus(message, type = 'info') {
         statusEl.textContent = message;
@@ -116,6 +136,73 @@
           .join('');
       }
 
+      function initMap() {
+        const initialLat = Number(latInput.value) || 14.7995;
+        const initialLng = Number(lngInput.value) || 100.6534;
+
+        map = L.map('map').setView([initialLat, initialLng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        targetMarker = L.marker([initialLat, initialLng], {
+          title: 'จุดเช็คอิน'
+        }).addTo(map);
+        targetMarker.bindPopup('<strong>มหาวิทยาลัยราชภัฏเทพสตรี</strong><br>จุดเช็คอินที่อนุญาต');
+
+        radiusCircle = L.circle([initialLat, initialLng], {
+          radius: 1000,
+          color: '#34d399',
+          fillColor: '#34d399',
+          fillOpacity: 0.15
+        }).addTo(map);
+      }
+
+      function updateTargetMarker() {
+        const targetLat = Number(latInput.value);
+        const targetLng = Number(lngInput.value);
+
+        if (!Number.isFinite(targetLat) || !Number.isFinite(targetLng) || !map) {
+          return;
+        }
+
+        targetMarker.setLatLng([targetLat, targetLng]);
+        radiusCircle.setLatLng([targetLat, targetLng]);
+        map.setView([targetLat, targetLng], map.getZoom());
+      }
+
+      function updateUserPosition(coords) {
+        const lat = coords.latitude;
+        const lng = coords.longitude;
+
+        if (!map) {
+          return;
+        }
+
+        if (!userMarker) {
+          userMarker = L.marker([lat, lng], {
+            title: 'ตำแหน่งของคุณ'
+          }).addTo(map);
+          userAccuracyCircle = L.circle([lat, lng], {
+            radius: Math.max(coords.accuracy || 20, 20),
+            color: '#60a5fa',
+            fillColor: '#60a5fa',
+            fillOpacity: 0.18
+          }).addTo(map);
+        } else {
+          userMarker.setLatLng([lat, lng]);
+          userAccuracyCircle.setLatLng([lat, lng]);
+          userAccuracyCircle.setRadius(Math.max(coords.accuracy || 20, 20));
+        }
+
+        const targetLat = Number(latInput.value);
+        const targetLng = Number(lngInput.value);
+        const distance = getDistanceMeters(lat, lng, targetLat, targetLng);
+        mapInfoEl.textContent = `ตำแหน่งปัจจุบัน: ${lat.toFixed(5)}, ${lng.toFixed(5)} · ระยะห่าง ${distance.toFixed(1)} เมตร`;
+        map.panTo([lat, lng], { animate: false });
+      }
+
       function requestCurrentLocation(callback) {
         if (!navigator.geolocation) {
           setStatus('เบราว์เซอร์ของคุณไม่รองรับ GPS', 'error');
@@ -128,6 +215,8 @@
           (position) => {
             latInput.value = position.coords.latitude.toFixed(6);
             lngInput.value = position.coords.longitude.toFixed(6);
+            updateTargetMarker();
+            updateUserPosition(position.coords);
             setStatus(`รับตำแหน่งสำเร็จแล้ว · ความแม่นยำ ±${Math.round(position.coords.accuracy)} เมตร`, 'success');
             callback(position.coords);
           },
@@ -146,7 +235,7 @@
         const place = placeNameInput.value.trim() || 'พื้นที่ไม่ระบุ';
         const targetLat = Number(latInput.value);
         const targetLng = Number(lngInput.value);
-        const radius = Number(radiusInput.value) || 100;
+        const radius = 1000;
 
         if (!Number.isFinite(targetLat) || !Number.isFinite(targetLng)) {
           setStatus('กรุณากรอกละติจูดและลองจิจูดให้ถูกต้อง', 'error');
@@ -156,7 +245,13 @@
         requestCurrentLocation((coords) => {
           const distance = getDistanceMeters(coords.latitude, coords.longitude, targetLat, targetLng);
           const ok = distance <= radius;
-          const result = ok ? 'เช็คอินสำเร็จ' : 'อยู่นอกพื้นที่ที่กำหนด';
+
+          if (!ok) {
+            setStatus(`ไม่สามารถเช็คอินได้ · ระยะห่าง ${distance.toFixed(1)} เมตร (ต้องไม่เกิน 1,000 เมตร)`, 'error');
+            return;
+          }
+
+          const result = 'เช็คอินสำเร็จ';
           const entry = {
             place,
             result,
@@ -168,12 +263,24 @@
           entries.unshift(entry);
           saveHistory(entries);
           renderHistory();
-          setStatus(`${result} · ระยะห่าง ${distance.toFixed(1)} เมตร`, ok ? 'success' : 'error');
+          setStatus(`${result} · ระยะห่าง ${distance.toFixed(1)} เมตร`, 'success');
         });
       }
 
       document.getElementById('useLocationBtn').addEventListener('click', () => requestCurrentLocation(() => {}));
       document.getElementById('checkInBtn').addEventListener('click', checkIn);
+      document.getElementById('fullscreenMapBtn').addEventListener('click', () => {
+        const mapContainer = document.getElementById('map');
+        if (!document.fullscreenElement) {
+          mapContainer.requestFullscreen?.();
+        } else {
+          document.exitFullscreen?.();
+        }
+      });
+      latInput.addEventListener('input', updateTargetMarker);
+      lngInput.addEventListener('input', updateTargetMarker);
+      initMap();
+      updateTargetMarker();
       renderHistory();
     </script>
   </body>
