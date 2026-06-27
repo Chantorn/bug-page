@@ -1,0 +1,34 @@
+{
+  "classrooms": [
+    {
+      "id": "room001",
+      "name": "ห้อง 101 - อาคารวิทยาศาสตร์",
+      "building": "อาคารวิทยาศาสตร์",
+      "floor": 1,
+      "latitude": 14.7995,
+      "longitude": 100.6534,
+      "radius": 500,
+      "capacity": 40
+    },
+    {
+      "id": "room002",
+      "name": "ห้อง 201 - อาคารศิลป์",
+      "building": "อาคารศิลป์",
+      "floor": 2,
+      "latitude": 14.7998,
+      "longitude": 100.6540,
+      "radius": 500,
+      "capacity": 35
+    },
+    {
+      "id": "room003",
+      "name": "ห้อง 301 - อาคารหนังสือ",
+      "building": "อาคารหนังสือ",
+      "floor": 3,
+      "latitude": 14.8000,
+      "longitude": 100.6545,
+      "radius": 500,
+      "capacity": 30
+    }
+  ]
+}

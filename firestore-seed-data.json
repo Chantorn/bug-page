@@ -1,0 +1,154 @@
+{
+  "collections": {
+    "students": [
+      {
+        "id": "001",
+        "name": "นายสมชาย อินทรพันธ์",
+        "studentId": "6501001",
+        "class": "ประเมินคณภาพ 1",
+        "email": "somchai@university.ac.th",
+        "phone": "0812345601",
+        "createdAt": "2026-06-01T00:00:00Z",
+        "status": "active"
+      },
+      {
+        "id": "002",
+        "name": "นางสาวจันทร์เพ็ญ ใจสว่าง",
+        "studentId": "6501002",
+        "class": "ประเมินคณภาพ 1",
+        "email": "chanpen@university.ac.th",
+        "phone": "0812345602",
+        "createdAt": "2026-06-01T00:00:00Z",
+        "status": "active"
+      },
+      {
+        "id": "003",
+        "name": "นายวิทยา มีศรุณ",
+        "studentId": "6501003",
+        "class": "ประเมินคณภาพ 1",
+        "email": "witthaya@university.ac.th",
+        "phone": "0812345603",
+        "createdAt": "2026-06-01T00:00:00Z",
+        "status": "active"
+      },
+      {
+        "id": "004",
+        "name": "นางสาวนันท์ชaya ศรีจันทร์",
+        "studentId": "6501004",
+        "class": "ประเมินคณภาพ 1",
+        "email": "nanchaya@university.ac.th",
+        "phone": "0812345604",
+        "createdAt": "2026-06-01T00:00:00Z",
+        "status": "active"
+      },
+      {
+        "id": "005",
+        "name": "นายกิตติศักดิ์ ประเสริฐกุล",
+        "studentId": "6501005",
+        "class": "ประเมินคณภาพ 1",
+        "email": "kittisak@university.ac.th",
+        "phone": "0812345605",
+        "createdAt": "2026-06-01T00:00:00Z",
+        "status": "active"
+      }
+    ],
+    "classrooms": [
+      {
+        "id": "room001",
+        "name": "ห้อง 101 - อาคารวิทยาศาสตร์",
+        "building": "อาคารวิทยาศาสตร์",
+        "floor": 1,
+        "latitude": 14.7995,
+        "longitude": 100.6534,
+        "radius": 500,
+        "capacity": 40,
+        "createdAt": "2026-06-01T00:00:00Z"
+      },
+      {
+        "id": "room002",
+        "name": "ห้อง 201 - อาคารศิลป์",
+        "building": "อาคารศิลป์",
+        "floor": 2,
+        "latitude": 14.7998,
+        "longitude": 100.6540,
+        "radius": 500,
+        "capacity": 35,
+        "createdAt": "2026-06-01T00:00:00Z"
+      },
+      {
+        "id": "room003",
+        "name": "ห้อง 301 - อาคารหนังสือ",
+        "building": "อาคารหนังสือ",
+        "floor": 3,
+        "latitude": 14.8000,
+        "longitude": 100.6545,
+        "radius": 500,
+        "capacity": 30,
+        "createdAt": "2026-06-01T00:00:00Z"
+      }
+    ],
+    "classes": [
+      {
+        "id": "class001",
+        "name": "ประเมินคณภาพ 1",
+        "semester": "1/2569",
+        "year": 2569,
+        "instructors": ["T001"],
+        "students": ["001", "002", "003", "004", "005"],
+        "schedule": {
+          "monday": "09:00-11:00",
+          "wednesday": "13:00-15:00"
+        },
+        "classroom": "room001",
+        "createdAt": "2026-06-01T00:00:00Z"
+      }
+    ],
+    "attendance": [
+      {
+        "id": "att001",
+        "studentId": "001",
+        "studentName": "นายสมชาย อินทรพันธ์",
+        "classId": "class001",
+        "classroomId": "room001",
+        "classroomName": "ห้อง 101 - อาคารวิทยาศาสตร์",
+        "date": "2026-06-27",
+        "checkInTime": "2026-06-27T09:15:30Z",
+        "checkOutTime": null,
+        "latitude": 14.7995,
+        "longitude": 100.6534,
+        "distance": 25,
+        "accuracy": 12.5,
+        "status": "checked-in",
+        "ipAddress": "192.168.1.100"
+      },
+      {
+        "id": "att002",
+        "studentId": "002",
+        "studentName": "นางสาวจันทร์เพ็ญ ใจสว่าง",
+        "classId": "class001",
+        "classroomId": "room001",
+        "classroomName": "ห้อง 101 - อาคารวิทยาศาสตร์",
+        "date": "2026-06-27",
+        "checkInTime": "2026-06-27T09:10:15Z",
+        "checkOutTime": null,
+        "latitude": 14.7996,
+        "longitude": 100.6533,
+        "distance": 15,
+        "accuracy": 10.0,
+        "status": "checked-in",
+        "ipAddress": "192.168.1.101"
+      }
+    ],
+    "teachers": [
+      {
+        "id": "T001",
+        "name": "อ.ดร. วิจารณ์ ศรีสวัสดิ์",
+        "email": "wichar@university.ac.th",
+        "phone": "0861234567",
+        "department": "วิทยาศาสตร์ประยุกต์",
+        "createdAt": "2026-06-01T00:00:00Z",
+        "status": "active"
+      }
+    ]
+  }
+}

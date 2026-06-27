@@ -1,0 +1,28 @@
+{
+  "attendanceRecords": [
+    {
+      "id": "att001",
+      "studentId": "001",
+      "studentName": "นายสมชาย อินทรพันธ์",
+      "classroomId": "room001",
+      "classroomName": "ห้อง 101 - อาคารวิทยาศาสตร์",
+      "checkInTime": "2024-06-27T09:15:30Z",
+      "latitude": 14.7995,
+      "longitude": 100.6534,
+      "distance": 25,
+      "status": "checked-in"
+    },
+    {
+      "id": "att002",
+      "studentId": "002",
+      "studentName": "นางสาวจันทร์เพ็ญ ใจสว่าง",
+      "classroomId": "room001",
+      "classroomName": "ห้อง 101 - อาคารวิทยาศาสตร์",
+      "checkInTime": "2024-06-27T09:10:15Z",
+      "latitude": 14.7996,
+      "longitude": 100.6533,
+      "distance": 15,
+      "status": "checked-in"
+    }
+  ]
+}

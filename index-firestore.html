@@ -3,15 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบเช็คอินนักศึกษา GPS</title>
+    <title>ระบบเช็คอินนักศึกษา GPS (Firestore)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style/style.css">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
 </head>
 <body>
     <div class="app-container">
         <!-- Header -->
         <header class="app-header">
-            <h1>📍 ระบบเช็คอินนักศึกษา (GPS Check-in)</h1>
+            <h1>📍 ระบบเช็คอินนักศึกษา (GPS Check-in) - Firestore</h1>
             <nav class="nav-tabs">
                 <button id="studentTabBtn" class="nav-tab active" onclick="switchTab('student')">นักศึกษา</button>
                 <button id="teacherTabBtn" class="nav-tab" onclick="switchTab('teacher')">อาจารย์</button>
@@ -158,6 +163,6 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="app.js"></script>
+    <script src="app-firestore.js"></script>
 </body>
 </html>

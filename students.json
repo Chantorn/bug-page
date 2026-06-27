@@ -1,0 +1,39 @@
+{
+  "students": [
+    {
+      "id": "001",
+      "name": "นายสมชาย อินทรพันธ์",
+      "studentId": "6501001",
+      "class": "ประเมินคณภาพ 1",
+      "email": "somchai@university.ac.th"
+    },
+    {
+      "id": "002",
+      "name": "นางสาวจันทร์เพ็ญ ใจสว่าง",
+      "studentId": "6501002",
+      "class": "ประเมินคณภาพ 1",
+      "email": "chanpen@university.ac.th"
+    },
+    {
+      "id": "003",
+      "name": "นายวิทยา มีศรุณ",
+      "studentId": "6501003",
+      "class": "ประเมินคณภาพ 1",
+      "email": "witthaya@university.ac.th"
+    },
+    {
+      "id": "004",
+      "name": "นางสาวนันท์ชaya ศรีจันทร์",
+      "studentId": "6501004",
+      "class": "ประเมินคณภาพ 1",
+      "email": "nanchaya@university.ac.th"
+    },
+    {
+      "id": "005",
+      "name": "นายกิตติศักดิ์ ประเสริฐกุล",
+      "studentId": "6501005",
+      "class": "ประเมินคณภาพ 1",
+      "email": "kittisak@university.ac.th"
+    }
+  ]
+}

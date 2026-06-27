@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ระบบเช็คอิน GPS ฟรี</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style/style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="panel hero-panel">
+        <p class="eyebrow">GPS Check-in ฟรี</p>
+        <h1>ระบบเช็คอินด้วยตำแหน่งที่ตั้งแบบไม่ต้องจ่ายเงิน</h1>
+        <p>
+          ใช้ GPS จากเบราว์เซอร์ของคุณเพื่อเช็คอินเข้าเขตพื้นที่ที่กำหนด
+          โดยไม่ต้องใช้ API ภายนอกหรือบริการเสียเงิน
+        </p>
+
+        <div id="status" class="status">ยังไม่ได้เช็คอิน</div>
+
+        <div class="actions">
+          <button id="useLocationBtn" class="btn btn-primary">ใช้ตำแหน่งปัจจุบัน</button>
+          <button id="checkInBtn" class="btn btn-secondary">เช็คอินตอนนี้</button>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>ตั้งค่าเป้าหมาย</h2>
+        <div class="grid">
+          <label>
+            ชื่อพื้นที่
+            <input id="placeName" type="text" value="มหาวิทยาลัยราชภัฏเทพสตรี" />
+          </label>
+          <label>
+            ละติจูด
+            <input id="lat" type="number" step="0.000001" value="14.7995" />
+          </label>
+          <label>
+            ลองจิจูด
+            <input id="lng" type="number" step="0.000001" value="100.6534" />
+          </label>
+          <label>
+            รัศมีที่อนุญาต
+            <input id="radius" type="number" min="1" value="1000" readonly />
+          </label>
+        </div>
+        <p class="hint">ระบบจะอนุญาตให้เช็คอินได้เฉพาะเมื่ออยู่ไม่เกิน 1,000 เมตรจากจุดนี้</p>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <h2>แผนที่และตำแหน่ง</h2>
+          <p>จุดสีเขียวคือจุดเป้าหมาย และจุดสีน้ำเงินคือตำแหน่งของคุณ</p>
+        </div>
+        <div class="map-toolbar">
+          <button id="fullscreenMapBtn" class="btn btn-secondary small">เปิดแผนที่เต็มจอ</button>
+        </div>
+        <div id="map"></div>
+        <div id="mapInfo" class="map-info">รอรับตำแหน่ง...</div>
+      </section>
+
+      <section class="panel">
+        <h2>ประวัติเช็คอิน</h2>
+        <ul id="historyList" class="history-list">
+          <li>ยังไม่มีประวัติการเช็คอิน</li>
+        </ul>
+      </section>
+      <section class="panel horoscope-panel">
+        <div class="section-heading">
+          <h2>ดูดวงรายวัน</h2>
+          <p>เลือกราศีเพื่ออ่านคำทำนายจากข้อมูลในไฟล์ daily-horoscope.json</p>
+        </div>
+
+        <div class="horoscope-controls">
+          <label class="select-label">
+            เลือกราศี
+            <select id="horoscopeSignSelect" class="horoscope-select">
+              <option value="">กำลังโหลดข้อมูล...</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="horoscopeCard" class="horoscope-card">
+          <p class="hint">กำลังโหลดคำทำนาย...</p>
+        </div>
+      </section>
+
+
+    </main>
+
+
+
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      const placeNameInput = document.getElementById('placeName');
+      const latInput = document.getElementById('lat');
+      const lngInput = document.getElementById('lng');
+      const radiusInput = document.getElementById('radius');
+      const statusEl = document.getElementById('status');
+      const historyList = document.getElementById('historyList');
+      const mapInfoEl = document.getElementById('mapInfo');
+      const horoscopeSelect = document.getElementById('horoscopeSignSelect');
+      const horoscopeCard = document.getElementById('horoscopeCard');
+      const storageKey = 'gps-checkin-history';
+      let map;
+      let horoscopeData = null;
+      let targetMarker;
+      let radiusCircle;
+      let userMarker;
+      let userAccuracyCircle;
+
+      function setStatus(message, type = 'info') {
+        statusEl.textContent = message;
+        statusEl.className = `status ${type}`;
+      }
+
+      function toRad(value) {
+        return (value * Math.PI) / 180;
+      }
+
+      function getDistanceMeters(lat1, lng1, lat2, lng2) {
+        const earthRadius = 6371000;
+        const dLat = toRad(lat2 - lat1);
+        const dLng = toRad(lng2 - lng1);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+          Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return earthRadius * c;
+      }
+
+      function loadHistory() {
+        const data = localStorage.getItem(storageKey);
+        return data ? JSON.parse(data) : [];
+      }
+
+      function saveHistory(entries) {
+        localStorage.setItem(storageKey, JSON.stringify(entries));
+      }
+
+      function renderHistory() {
+        const entries = loadHistory();
+        if (!entries.length) {
+          historyList.innerHTML = '<li>ยังไม่มีประวัติการเช็คอิน</li>';
+          return;
+        }
+
+        historyList.innerHTML = entries
+          .slice(0, 8)
+          .map((entry) => {
+            const distance = entry.distance.toFixed(1);
+            return `
+              <li>
+                <strong>${entry.place}</strong>
+                <span>${entry.result}</span>
+                <small>${entry.time} · ระยะห่าง ${distance} เมตร</small>
+              </li>
+            `;
+          })
+          .join('');
+      }
+
+      function initMap() {
+        const initialLat = Number(latInput.value) || 14.7995;
+        const initialLng = Number(lngInput.value) || 100.6534;
+
+        map = L.map('map').setView([initialLat, initialLng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        targetMarker = L.marker([initialLat, initialLng], {
+          title: 'จุดเช็คอิน'
+        }).addTo(map);
+        targetMarker.bindPopup('<strong>มหาวิทยาลัยราชภัฏเทพสตรี</strong><br>จุดเช็คอินที่อนุญาต');
+
+        radiusCircle = L.circle([initialLat, initialLng], {
+          radius: 1000,
+          color: '#34d399',
+          fillColor: '#34d399',
+          fillOpacity: 0.15
+        }).addTo(map);
+      }
+
+      function updateTargetMarker() {
+        const targetLat = Number(latInput.value);
+        const targetLng = Number(lngInput.value);
+
+        if (!Number.isFinite(targetLat) || !Number.isFinite(targetLng) || !map) {
+          return;
+        }
+
+        targetMarker.setLatLng([targetLat, targetLng]);
+        radiusCircle.setLatLng([targetLat, targetLng]);
+        map.setView([targetLat, targetLng], map.getZoom());
+      }
+
+      function updateUserPosition(coords) {
+        const lat = coords.latitude;
+        const lng = coords.longitude;
+
+        if (!map) {
+          return;
+        }
+
+        if (!userMarker) {
+          userMarker = L.marker([lat, lng], {
+            title: 'ตำแหน่งของคุณ'
+          }).addTo(map);
+          userAccuracyCircle = L.circle([lat, lng], {
+            radius: Math.max(coords.accuracy || 20, 20),
+            color: '#60a5fa',
+            fillColor: '#60a5fa',
+            fillOpacity: 0.18
+          }).addTo(map);
+        } else {
+          userMarker.setLatLng([lat, lng]);
+          userAccuracyCircle.setLatLng([lat, lng]);
+          userAccuracyCircle.setRadius(Math.max(coords.accuracy || 20, 20));
+        }
+
+        const targetLat = Number(latInput.value);
+        const targetLng = Number(lngInput.value);
+        const distance = getDistanceMeters(lat, lng, targetLat, targetLng);
+        mapInfoEl.textContent = `ตำแหน่งปัจจุบัน: ${lat.toFixed(5)}, ${lng.toFixed(5)} · ระยะห่าง ${distance.toFixed(1)} เมตร`;
+        map.panTo([lat, lng], { animate: false });
+      }
+
+      function requestCurrentLocation(callback) {
+        if (!navigator.geolocation) {
+          setStatus('เบราว์เซอร์ของคุณไม่รองรับ GPS', 'error');
+          return;
+        }
+
+        setStatus('กำลังขอสิทธิ์ตำแหน่งจากอุปกรณ์...', 'info');
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            latInput.value = position.coords.latitude.toFixed(6);
+            lngInput.value = position.coords.longitude.toFixed(6);
+            updateTargetMarker();
+            updateUserPosition(position.coords);
+            setStatus(`รับตำแหน่งสำเร็จแล้ว · ความแม่นยำ ±${Math.round(position.coords.accuracy)} เมตร`, 'success');
+            callback(position.coords);
+          },
+          (error) => {
+            let message = 'ไม่สามารถรับตำแหน่งได้';
+            if (error.code === 1) message = 'คุณปฏิเสธสิทธิ์การเข้าถึงตำแหน่ง';
+            if (error.code === 2) message = 'ไม่พบข้อมูลตำแหน่งในขณะนี้';
+            if (error.code === 3) message = 'หมดเวลาในการหาตำแหน่ง';
+            setStatus(message, 'error');
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      }
+
+      function checkIn() {
+        const place = placeNameInput.value.trim() || 'พื้นที่ไม่ระบุ';
+        const targetLat = Number(latInput.value);
+        const targetLng = Number(lngInput.value);
+        const radius = 1000;
+
+        if (!Number.isFinite(targetLat) || !Number.isFinite(targetLng)) {
+          setStatus('กรุณากรอกละติจูดและลองจิจูดให้ถูกต้อง', 'error');
+          return;
+        }
+
+        requestCurrentLocation((coords) => {
+          const distance = getDistanceMeters(coords.latitude, coords.longitude, targetLat, targetLng);
+          const ok = distance <= radius;
+
+          if (!ok) {
+            setStatus(`ไม่สามารถเช็คอินได้ · ระยะห่าง ${distance.toFixed(1)} เมตร (ต้องไม่เกิน 1,000 เมตร)`, 'error');
+            return;
+          }
+
+          const result = 'เช็คอินสำเร็จ';
+          const entry = {
+            place,
+            result,
+            distance,
+            time: new Date().toLocaleString('th-TH')
+          };
+
+          const entries = loadHistory();
+          entries.unshift(entry);
+          saveHistory(entries);
+          renderHistory();
+          setStatus(`${result} · ระยะห่าง ${distance.toFixed(1)} เมตร`, 'success');
+        });
+      }
+
+      async function loadHoroscopeData() {
+        try {
+          const response = await fetch('./daily-horoscope.json');
+          if (!response.ok) {
+            throw new Error('ไม่สามารถโหลดข้อมูลได้');
+          }
+
+          horoscopeData = await response.json();
+          const predictions = horoscopeData.predictions || [];
+
+          horoscopeSelect.innerHTML = predictions
+            .map((item) => `<option value="${item.sign}">${item.sign}</option>`)
+            .join('');
+
+          if (predictions.length) {
+            horoscopeSelect.value = predictions[0].sign;
+            renderHoroscope(predictions[0].sign);
+          }
+        } catch (error) {
+          horoscopeCard.innerHTML = `<p class="hint error-text">ไม่สามารถโหลดข้อมูลดูดวงได้: ${error.message}</p>`;
+        }
+      }
+
+      function renderHoroscope(sign) {
+        if (!horoscopeData?.predictions?.length) {
+          horoscopeCard.innerHTML = '<p class="hint">ยังไม่มีข้อมูลทำนาย</p>';
+          return;
+        }
+
+        const prediction = horoscopeData.predictions.find((item) => item.sign === sign);
+        if (!prediction) {
+          horoscopeCard.innerHTML = '<p class="hint">ไม่พบข้อมูลสำหรับราศีนี้</p>';
+          return;
+        }
+
+        horoscopeCard.innerHTML = `
+          <div class="horoscope-header">
+            <div>
+              <h3>${prediction.sign}</h3>
+              <p class="horoscope-date">${horoscopeData.date || 'วันนี้'}</p>
+            </div>
+            <span class="horoscope-badge">${horoscopeData.source || 'daily horoscope'}</span>
+          </div>
+
+          <div class="horoscope-overview">${prediction.overall}</div>
+
+          <div class="horoscope-grid">
+            <article>
+              <h4>ความรัก</h4>
+              <p>${prediction.love}</p>
+            </article>
+            <article>
+              <h4>อาชีพ</h4>
+              <p>${prediction.career}</p>
+            </article>
+            <article>
+              <h4>การเงิน</h4>
+              <p>${prediction.money}</p>
+            </article>
+          </div>
+
+          <div class="horoscope-footer">
+            <div>
+              <span>สีมงคล</span>
+              <strong>${prediction.lucky_color}</strong>
+            </div>
+            <div>
+              <span>เลขมงคล</span>
+              <strong>${prediction.lucky_number}</strong>
+            </div>
+          </div>
+        `;
+      }
+
+      document.getElementById('useLocationBtn').addEventListener('click', () => requestCurrentLocation(() => {}));
+      document.getElementById('checkInBtn').addEventListener('click', checkIn);
+      document.getElementById('fullscreenMapBtn').addEventListener('click', () => {
+        const mapContainer = document.getElementById('map');
+        if (!document.fullscreenElement) {
+          mapContainer.requestFullscreen?.();
+        } else {
+          document.exitFullscreen?.();
+        }
+      });
+      horoscopeSelect.addEventListener('change', (event) => renderHoroscope(event.target.value));
+      latInput.addEventListener('input', updateTargetMarker);
+      lngInput.addEventListener('input', updateTargetMarker);
+      initMap();
+      updateTargetMarker();
+      renderHistory();
+      loadHoroscopeData();
+    </script>
+  </body>
+</html>
